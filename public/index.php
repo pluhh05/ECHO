@@ -1,0 +1,394 @@
+<?php
+// ECHO — Music Discovery Platform
+// BTech 5th Semester Web Technology Project
+// Entry Shell & Persistent Audio Host
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101014">
+  <meta name="description" content="ECHO — Find your next favorite sound. Discover emerging artists, curated genres, and personalized playlists.">
+  <title>ECHO — Find your next favorite sound</title>
+
+  <!-- Typography: Space Grotesk & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Core Stylesheet -->
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <!-- Accessible Skip Link -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- Main Application Layout Shell -->
+  <div id="app" class="app-layout">
+    
+    <!-- ==========================================
+         Desktop Sidebar (224px fixed)
+         ========================================== -->
+    <aside class="sidebar" id="sidebar" aria-label="Primary Navigation">
+      <!-- Brand Wordmark with Sound-Ripple Motif -->
+      <a href="#/discover" class="brand" aria-label="ECHO Home">
+        <svg class="brand-icon" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="14" cy="14" r="3.5" fill="currentColor"/>
+          <path d="M10 8.5C8 10 6.5 11.8 6.5 14C6.5 16.2 8 18 10 19.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M18 8.5C20 10 21.5 11.8 21.5 14C21.5 16.2 20 18 18 19.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M7 5C4 7.5 2 10.5 2 14C2 17.5 4 20.5 7 23" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity="0.65"/>
+          <path d="M21 5C24 7.5 26 10.5 26 14C26 17.5 24 20.5 21 23" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity="0.65"/>
+        </svg>
+        <span class="brand-text">ECHO</span>
+      </a>
+
+      <!-- Student 1 Modules: Discovery & Exploration -->
+      <div class="nav-section">
+        <span class="nav-heading">Discovery</span>
+        <a href="#/discover" class="nav-link" id="nav-discover">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+          <span>Discover</span>
+        </a>
+        <a href="#/genres" class="nav-link" id="nav-genres">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+          </svg>
+          <span>Explore Genres</span>
+        </a>
+      </div>
+
+      <div class="nav-divider"></div>
+
+      <!-- Student 2 Modules: User Collections -->
+      <div class="nav-section">
+        <span class="nav-heading">Your Music</span>
+        <a href="#/playlists" class="nav-link" id="nav-playlists">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+          </svg>
+          <span>My Playlists</span>
+        </a>
+        <a href="#/library" class="nav-link" id="nav-library">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span>My Library</span>
+        </a>
+
+        <button class="sidebar-action-btn" id="sidebar-new-playlist-btn" onclick="window.location.hash='#/playlists'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>Create Playlist</span>
+        </button>
+      </div>
+
+      <div class="sidebar-footer">
+        <strong>MIT Manipal</strong><br>
+        Web Tech BTech Project<br>
+        ICT3131 &bull; 5th Semester
+      </div>
+    </aside>
+
+    <!-- ==========================================
+         Main Wrapper: Header + Dynamic Views
+         ========================================== -->
+    <div class="main-wrapper">
+      <!-- Top Search & Account Bar -->
+      <header class="top-header" role="banner">
+        <a href="#/discover" class="mobile-brand" aria-label="ECHO Home">
+          <svg class="brand-icon" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+            <circle cx="14" cy="14" r="3.5" fill="currentColor"/>
+            <path d="M10 8.5C8 10 6.5 11.8 6.5 14C6.5 16.2 8 18 10 19.5" stroke="currentColor" stroke-width="2"/>
+            <path d="M18 8.5C20 10 21.5 11.8 21.5 14C21.5 16.2 20 18 18 19.5" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          <span class="brand-text">ECHO</span>
+        </a>
+
+        <!-- Global Catalogue Search Input -->
+        <div class="search-container" role="search">
+          <div class="search-input-wrapper">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input 
+              type="search" 
+              id="global-search-input" 
+              class="search-input" 
+              placeholder="Search songs, artists, or genres..." 
+              aria-label="Search music catalogue"
+              autocomplete="off"
+            >
+          </div>
+        </div>
+
+        <!-- User Authentication & Profile -->
+        <div class="header-actions" id="user-profile-area">
+          <button class="btn btn-primary" id="btn-header-signin">
+            <span>Sign In</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Scrollable Content Container -->
+      <main id="main-content" class="main-content" tabindex="-1">
+        <div id="view-container">
+          <!-- Views rendered dynamically via JavaScript router -->
+        </div>
+
+        <!-- Dedicated Accessible Live Region -->
+        <div id="sr-announcements" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+      </main>
+    </div>
+
+    <!-- ==========================================
+         Persistent Bottom Preview Player
+         ========================================== -->
+    <footer class="playback-bar" id="playback-bar" aria-label="Audio player">
+      <!-- Hidden Persistent HTML5 Audio Tag -->
+      <audio id="audio-engine" preload="none"></audio>
+
+      <!-- Left: Track Identity -->
+      <div class="player-track-info">
+        <div class="player-artwork-wrap">
+          <img id="player-artwork" class="player-artwork" src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=120&q=80" alt="Current track artwork">
+        </div>
+        <div class="player-text-wrap">
+          <div class="player-title-row">
+            <span id="player-track-title" class="player-track-title" title="Neon Odyssey">Neon Odyssey</span>
+            <span class="badge badge-preview" style="font-size: 10px; padding: 1px 6px;">Preview</span>
+          </div>
+          <span id="player-track-artist" class="player-track-artist">Astral Wave</span>
+        </div>
+        <button class="btn btn-icon btn-icon-sm player-like-btn" id="player-like-btn" aria-label="Save song to library">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Center: Playback Controls & Progress Scrubber -->
+      <div class="player-controls-container">
+        <div class="player-buttons">
+          <button class="btn btn-ghost btn-icon btn-icon-sm player-btn-prev" id="player-prev-btn" aria-label="Previous track">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="19 20 9 12 19 4 19 20"></polygon>
+              <line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2"></line>
+            </svg>
+          </button>
+
+          <button class="player-btn-main" id="player-play-btn" aria-label="Play">
+            <span id="player-play-icon" style="display: flex;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+            </span>
+          </button>
+
+          <button class="btn btn-ghost btn-icon btn-icon-sm player-btn-next" id="player-next-btn" aria-label="Next track">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 4 15 12 5 20 5 4"></polygon>
+              <line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div class="player-scrubber-row">
+          <span id="player-current-time" class="player-time">0:00</span>
+          <input 
+            type="range" 
+            id="player-scrubber" 
+            class="player-range" 
+            min="0" 
+            max="100" 
+            value="0" 
+            step="0.1" 
+            aria-label="Track progress seek bar"
+          >
+          <span id="player-duration-time" class="player-time">0:30</span>
+        </div>
+      </div>
+
+      <!-- Right: Volume & Secondary Options -->
+      <div class="player-secondary-controls">
+        <div class="volume-wrapper">
+          <span id="player-volume-icon" style="color: var(--text-muted); display: flex;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+          </span>
+          <input 
+            type="range" 
+            id="player-volume-slider" 
+            class="player-range" 
+            min="0" 
+            max="1" 
+            value="0.8" 
+            step="0.05" 
+            aria-label="Volume slider"
+          >
+        </div>
+      </div>
+    </footer>
+
+    <!-- ==========================================
+         Mobile Bottom Navigation (viewport < 768px)
+         ========================================== -->
+    <nav class="mobile-bottom-nav" aria-label="Mobile Navigation">
+      <a href="#/discover" class="mobile-nav-item" id="mobile-nav-discover">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+        <span>Discover</span>
+      </a>
+      <a href="#/genres" class="mobile-nav-item" id="mobile-nav-genres">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+          <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+        </svg>
+        <span>Genres</span>
+      </a>
+      <a href="#/playlists" class="mobile-nav-item" id="mobile-nav-playlists">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="8" y1="6" x2="21" y2="6"></line>
+          <line x1="8" y1="12" x2="21" y2="12"></line>
+          <line x1="8" y1="18" x2="21" y2="18"></line>
+        </svg>
+        <span>Playlists</span>
+      </a>
+      <a href="#/library" class="mobile-nav-item" id="mobile-nav-library">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <span>Library</span>
+      </a>
+    </nav>
+
+    <!-- ==========================================
+         Accessible Modals (<dialog>)
+         ========================================== -->
+    <!-- 1. Authentication Dialog (Login / Register) -->
+    <dialog id="auth-modal" class="modal-dialog" aria-labelledby="auth-modal-title">
+      <div class="modal-header">
+        <div style="display: flex; gap: var(--space-2);">
+          <button class="btn btn-ghost active" id="tab-auth-login" style="font-weight: 700;">Sign In</button>
+          <button class="btn btn-ghost" id="tab-auth-register" style="font-weight: 700;">Create Account</button>
+        </div>
+        <button class="btn btn-icon btn-icon-sm" onclick="Modal.close('auth-modal')" aria-label="Close modal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Login Form -->
+        <form id="login-form">
+          <div class="form-group">
+            <label for="login-username" class="form-label">Username or Email</label>
+            <input type="text" id="login-username" class="form-control" required autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label for="login-password" class="form-label">Password</label>
+            <input type="password" id="login-password" class="form-control" required autocomplete="current-password">
+          </div>
+          <div id="login-error" class="form-error" role="alert"></div>
+          <div class="modal-footer" style="padding: var(--space-4) 0 0;">
+            <button type="button" class="btn btn-secondary" onclick="Modal.close('auth-modal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Sign In</button>
+          </div>
+        </form>
+
+        <!-- Registration Form (hidden by default) -->
+        <form id="register-form" style="display: none;">
+          <div class="form-group">
+            <label for="reg-username" class="form-label">Username</label>
+            <input type="text" id="reg-username" class="form-control" required autocomplete="username" minlength="3">
+          </div>
+          <div class="form-group">
+            <label for="reg-email" class="form-label">Email Address</label>
+            <input type="email" id="reg-email" class="form-control" required autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label for="reg-password" class="form-label">Password (min 8 characters)</label>
+            <input type="password" id="reg-password" class="form-control" required autocomplete="new-password" minlength="8">
+          </div>
+          <div id="reg-error" class="form-error" role="alert"></div>
+          <div class="modal-footer" style="padding: var(--space-4) 0 0;">
+            <button type="button" class="btn btn-secondary" onclick="Modal.close('auth-modal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Account</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+
+    <!-- 3. Track Details & Credits Dialog -->
+    <dialog id="track-modal" class="modal-dialog" aria-labelledby="track-modal-title">
+      <!-- Populated dynamically via GenresView.openTrackDetails -->
+    </dialog>
+
+    <!-- 2. Create Playlist Dialog -->
+    <dialog id="playlist-modal" class="modal-dialog" aria-labelledby="playlist-modal-title">
+      <div class="modal-header">
+        <h2 id="playlist-modal-title" class="modal-title">Create New Playlist</h2>
+        <button class="btn btn-icon btn-icon-sm" onclick="Modal.close('playlist-modal')" aria-label="Close modal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <form id="playlist-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="playlist-title-input" class="form-label">Playlist Name</label>
+            <input type="text" id="playlist-title-input" class="form-control" placeholder="e.g. Synthwave Night Drive" required maxlength="100">
+          </div>
+          <div class="form-group">
+            <label for="playlist-desc-input" class="form-label">Description (Optional)</label>
+            <textarea id="playlist-desc-input" class="form-control" rows="3" placeholder="Add an optional description for this collection..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="Modal.close('playlist-modal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Playlist</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- 3. Track Details & Credits Dialog -->
+    <dialog id="track-modal" class="modal-dialog" aria-labelledby="track-modal-title">
+      <!-- Populated dynamically via GenresView.openTrackDetails -->
+    </dialog>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+  </div>
+
+  <!-- Component & Feature Scripts -->
+  <script src="assets/js/components/toast.js"></script>
+  <script src="assets/js/components/modal.js"></script>
+  <script src="assets/js/player.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/views/discoverView.js"></script>
+  <script src="assets/js/views/genresView.js"></script>
+  <script src="assets/js/views/playlistsView.js"></script>
+  <script src="assets/js/views/libraryView.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,259 @@
+/**
+ * ECHO Persistent Preview Player Styles
+ * Desktop bottom bar (80px) & Mobile mini-player (64px) with expanded sheet
+ */
+
+.playback-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--player-height);
+  background-color: var(--bg-surface-raised);
+  border-top: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-player);
+  z-index: var(--z-player);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-6);
+  gap: var(--space-4);
+}
+
+/* =========================================================
+   Left: Current Track Identity
+   ========================================================= */
+.player-track-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 280px;
+  min-width: 180px;
+}
+
+.player-artwork-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: var(--bg-surface);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.player-artwork {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.player-text-wrap {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.player-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.player-track-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-track-artist {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-like-btn {
+  color: var(--text-muted);
+  transition: color var(--transition-fast);
+}
+
+.player-like-btn:hover {
+  color: var(--text-primary);
+}
+
+.player-like-btn.is-liked {
+  color: var(--accent-primary);
+}
+
+/* =========================================================
+   Center: Controls & Progress Scrubber
+   ========================================================= */
+.player-controls-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 600px;
+  width: 100%;
+}
+
+.player-buttons {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.player-btn-main {
+  width: 42px;
+  height: 42px;
+  background-color: var(--accent-primary);
+  color: var(--text-inverse);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--transition-fast), background-color var(--transition-fast);
+}
+
+.player-btn-main:hover {
+  background-color: var(--accent-hover);
+  transform: scale(1.06);
+}
+
+.player-btn-main:active {
+  transform: scale(0.96);
+}
+
+.player-btn-main svg {
+  width: 20px;
+  height: 20px;
+}
+
+.player-scrubber-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.player-time {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 38px;
+  text-align: center;
+}
+
+/* Range input styling for Scrubber & Volume */
+.player-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--border-strong);
+  outline: none;
+  cursor: pointer;
+  transition: height var(--transition-fast);
+}
+
+.player-range:hover {
+  height: 6px;
+}
+
+.player-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: transform var(--transition-fast), background-color var(--transition-fast);
+}
+
+.player-range:hover::-webkit-slider-thumb {
+  transform: scale(1.2);
+  background: var(--accent-primary);
+}
+
+.player-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: none;
+  background: var(--text-primary);
+  cursor: pointer;
+}
+
+/* =========================================================
+   Right: Volume & Secondary Options
+   ========================================================= */
+.player-secondary-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  width: 240px;
+  min-width: 160px;
+}
+
+.volume-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 130px;
+}
+
+/* =========================================================
+   Mobile View Adaptations
+   ========================================================= */
+@media (max-width: 767px) {
+  .playback-bar {
+    bottom: var(--mobile-nav-height);
+    height: var(--mobile-player-height);
+    padding: 0 var(--space-3);
+    gap: var(--space-2);
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-strong);
+  }
+
+  .player-track-info {
+    width: auto;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .player-artwork-wrap {
+    width: 44px;
+    height: 44px;
+  }
+
+  .player-controls-container {
+    width: auto;
+    flex-direction: row;
+    max-width: none;
+  }
+
+  .player-scrubber-row,
+  .player-secondary-controls,
+  .player-btn-prev,
+  .player-btn-next {
+    display: none;
+  }
+
+  .player-btn-main {
+    width: 36px;
+    height: 36px;
+  }
+
+  .player-mobile-expand-btn {
+    display: flex;
+  }
+}
+
