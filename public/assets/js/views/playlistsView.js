@@ -14,14 +14,21 @@ const PlaylistsView = (function () {
       return;
     }
 
+    // Never reuse playlist data from a previous account or failed request.
+    userPlaylists = [];
     if (isAuthed) {
       try {
         const res = await Api.get('playlists.php?action=list');
         if (res && res.success && Array.isArray(res.playlists)) {
           userPlaylists = res.playlists;
+        } else {
+          throw new Error('Invalid playlist response');
         }
       } catch (err) {
         console.warn('Could not fetch user playlists from backend:', err);
+        container.innerHTML = `<div class="view-container"><div class="state-container" role="alert"><h2 class="state-title">Unable to load playlists</h2><p class="state-description">Please check your connection and try again.</p><button class="btn btn-secondary" id="retry-playlists">Try Again</button></div></div>`;
+        container.querySelector('#retry-playlists').addEventListener('click', () => render(container));
+        return;
       }
     }
 
