@@ -335,3 +335,13 @@
   }
 }
 
+
+/* Account name visibility belongs in responsive CSS, not inline styles. */
+.user-profile-name {
+  display: none;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+@media (min-width: 600px) {
+  .user-profile-name { display: inline; }
+}
