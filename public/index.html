@@ -365,9 +365,41 @@
       </form>
     </dialog>
 
-    <!-- 3. Track Details & Credits Dialog -->
-    <dialog id="track-modal" class="modal-dialog" aria-labelledby="track-modal-title">
-      <!-- Populated dynamically via GenresView.openTrackDetails -->
+    <!-- 4. Add Song to Playlist Search Dialog -->
+    <dialog id="add-track-modal" class="modal-dialog" aria-labelledby="add-track-modal-title" style="max-width: 560px; width: 95vw;">
+      <div class="modal-header">
+        <h2 id="add-track-modal-title" class="modal-title">Add Song to Playlist</h2>
+        <button class="btn btn-icon btn-icon-sm" onclick="Modal.close('add-track-modal')" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body" style="padding-top: var(--space-3);">
+        <div class="search-input-wrapper" style="margin-bottom: var(--space-4);">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input
+            type="search"
+            id="add-track-search-input"
+            class="search-input"
+            placeholder="Search by title, artist or album…"
+            autocomplete="off"
+            aria-label="Search songs"
+          >
+        </div>
+        <div id="add-track-results" role="listbox" aria-label="Song search results" style="max-height: 340px; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-1);">
+          <p style="color: var(--text-muted); font-size: var(--text-sm); text-align: center; padding: var(--space-6) 0;">Start typing to search songs…</p>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- 5. Artist / Album Detail Dialog -->
+    <dialog id="detail-modal" class="modal-dialog" aria-labelledby="detail-modal-title" style="max-width: 680px; width: 95vw;">
+      <!-- Populated dynamically via DiscoverView.openDetail() -->
     </dialog>
 
     <!-- Toast Container -->

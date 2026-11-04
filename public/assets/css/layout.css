@@ -227,6 +227,23 @@
   gap: var(--space-3);
 }
 
+/* Username label — hidden on narrow viewports */
+.header-username {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  display: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+@media (min-width: 600px) {
+  .header-username {
+    display: inline;
+  }
+}
+
 /* =========================================================
    Main Scrollable Content Area
    ========================================================= */

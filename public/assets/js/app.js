@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (user) {
       userProfileArea.innerHTML = `
         <div style="display: flex; align-items: center; gap: var(--space-3);">
-          <span style="font-size: var(--text-xs); color: var(--text-secondary); display: none; @media(min-width: 600px){ display: inline; }">
+          <span class="header-username">
             ${escapeHtml(user.username)}
           </span>
           <button class="btn btn-secondary btn-icon-sm" id="btn-user-avatar" title="Account (${escapeHtml(user.username)})" style="background: var(--accent-subtle); color: var(--accent-primary); font-weight: 700;">

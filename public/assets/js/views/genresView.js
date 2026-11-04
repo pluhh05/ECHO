@@ -276,22 +276,40 @@ const GenresView = (function () {
         </h3>
         <div style="display: flex; gap: var(--space-4); flex-wrap: wrap;">
           ${hasArtists ? data.artists.map(ar => `
-            <div style="display: flex; align-items: center; gap: var(--space-2); background: var(--bg-surface-raised); padding: 6px 12px; border-radius: var(--radius-full); cursor: pointer;" 
-                 onclick="window.location.hash='#/genres?q=${encodeURIComponent(ar.name)}'">
+            <div style="display: flex; align-items: center; gap: var(--space-2); background: var(--bg-surface-raised); padding: 6px 14px; border-radius: var(--radius-full); cursor: pointer; transition: background var(--transition-fast);" 
+                 class="search-entity-chip search-artist-chip" data-id="${ar.id}" role="button" tabindex="0" title="View artist profile">
               <img src="${ar.image_url}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;" alt="${escapeHtml(ar.name)}">
-              <span style="font-size: var(--text-xs); font-weight: 600;">${escapeHtml(ar.name)} (Artist)</span>
+              <span style="font-size: var(--text-xs); font-weight: 600;">${escapeHtml(ar.name)} <span style="color: var(--accent-primary);">&bull; Artist</span></span>
             </div>
           `).join('') : ''}
           ${hasAlbums ? data.albums.map(al => `
-            <div style="display: flex; align-items: center; gap: var(--space-2); background: var(--bg-surface-raised); padding: 6px 12px; border-radius: var(--radius-full); cursor: pointer;"
-                 onclick="window.location.hash='#/genres?q=${encodeURIComponent(al.title)}'">
+            <div style="display: flex; align-items: center; gap: var(--space-2); background: var(--bg-surface-raised); padding: 6px 14px; border-radius: var(--radius-full); cursor: pointer; transition: background var(--transition-fast);"
+                 class="search-entity-chip search-album-chip" data-id="${al.id}" role="button" tabindex="0" title="View album details">
               <img src="${al.cover_url}" style="width: 24px; height: 24px; border-radius: 4px; object-fit: cover;" alt="${escapeHtml(al.title)}">
-              <span style="font-size: var(--text-xs); font-weight: 600;">${escapeHtml(al.title)} (Album)</span>
+              <span style="font-size: var(--text-xs); font-weight: 600;">${escapeHtml(al.title)} <span style="color: var(--accent-primary);">&bull; Album</span></span>
             </div>
           `).join('') : ''}
         </div>
       </div>
     `;
+
+    wrapper.querySelectorAll('.search-artist-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const id = parseInt(chip.dataset.id, 10);
+        if (typeof DiscoverView !== 'undefined' && DiscoverView.openArtistDetail) {
+          DiscoverView.openArtistDetail(id);
+        }
+      });
+    });
+
+    wrapper.querySelectorAll('.search-album-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const id = parseInt(chip.dataset.id, 10);
+        if (typeof DiscoverView !== 'undefined' && DiscoverView.openAlbumDetail) {
+          DiscoverView.openAlbumDetail(id);
+        }
+      });
+    });
   }
 
   async function openTrackDetails(trackId) {

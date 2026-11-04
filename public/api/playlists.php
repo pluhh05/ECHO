@@ -262,30 +262,44 @@ try {
             jsonError('Track not found in catalogue.', 404);
         }
 
-        // Prevent duplicate track membership
-        $dupStmt = $db->prepare("SELECT 1 FROM playlist_tracks WHERE playlist_id = :p AND track_id = :t");
-        $dupStmt->execute([':p' => $playlistId, ':t' => $trackId]);
-        if ($dupStmt->fetch()) {
-            jsonError("This track is already in the playlist.", 409);
+        // Concurrency-safe atomic insertion with transaction and row lock
+        $db->beginTransaction();
+        try {
+            // Lock playlist row to serialize concurrent position calculations
+            $lockStmt = $db->prepare("SELECT id FROM playlists WHERE id = :id FOR UPDATE");
+            $lockStmt->execute([':id' => $playlistId]);
+
+            // Prevent duplicate track membership
+            $dupStmt = $db->prepare("SELECT 1 FROM playlist_tracks WHERE playlist_id = :p AND track_id = :t");
+            $dupStmt->execute([':p' => $playlistId, ':t' => $trackId]);
+            if ($dupStmt->fetch()) {
+                $db->rollBack();
+                jsonError("This track is already in the playlist.", 409);
+            }
+
+            // Determine next position safely inside transaction
+            $posStmt = $db->prepare("SELECT COALESCE(MAX(position), 0) + 1 FROM playlist_tracks WHERE playlist_id = :p");
+            $posStmt->execute([':p' => $playlistId]);
+            $nextPos = (int)$posStmt->fetchColumn();
+
+            $insertStmt = $db->prepare("
+                INSERT INTO playlist_tracks (playlist_id, track_id, position)
+                VALUES (:p, :t, :pos)
+            ");
+            $insertStmt->execute([
+                ':p'   => $playlistId,
+                ':t'   => $trackId,
+                ':pos' => $nextPos
+            ]);
+
+            // Update playlist updated_at
+            $db->prepare("UPDATE playlists SET updated_at = CURRENT_TIMESTAMP WHERE id = :id")->execute([':id' => $playlistId]);
+
+            $db->commit();
+        } catch (Exception $txEx) {
+            $db->rollBack();
+            throw $txEx;
         }
-
-        // Determine next position
-        $posStmt = $db->prepare("SELECT COALESCE(MAX(position), 0) + 1 FROM playlist_tracks WHERE playlist_id = :p");
-        $posStmt->execute([':p' => $playlistId]);
-        $nextPos = (int)$posStmt->fetchColumn();
-
-        $insertStmt = $db->prepare("
-            INSERT INTO playlist_tracks (playlist_id, track_id, position)
-            VALUES (:p, :t, :pos)
-        ");
-        $insertStmt->execute([
-            ':p'   => $playlistId,
-            ':t'   => $trackId,
-            ':pos' => $nextPos
-        ]);
-
-        // Update playlist updated_at
-        $db->prepare("UPDATE playlists SET updated_at = CURRENT_TIMESTAMP WHERE id = :id")->execute([':id' => $playlistId]);
 
         jsonResponse([
             'success' => true,
@@ -327,6 +341,53 @@ try {
             'success' => true,
             'message' => 'Track removed from playlist.'
         ]);
+    }
+
+    // ----------------------------------------------------------------
+    // 8. POST ?action=reorder — Bulk reorder all tracks in a playlist
+    // ----------------------------------------------------------------
+    if ($method === 'POST' && $action === 'reorder') {
+        $user = requireAuth();
+        requireCsrf();
+
+        $input = getJsonInput();
+        $playlistId = (int)($input['playlist_id'] ?? 0);
+        $trackIds   = $input['track_ids'] ?? [];
+
+        if ($playlistId <= 0 || !is_array($trackIds) || count($trackIds) === 0) {
+            jsonError('Playlist ID and non-empty track_ids array are required.', 422);
+        }
+
+        // Verify ownership
+        $checkStmt = $db->prepare("SELECT user_id FROM playlists WHERE id = :id");
+        $checkStmt->execute([':id' => $playlistId]);
+        $ownerId = $checkStmt->fetchColumn();
+        if ($ownerId === false) jsonError('Playlist not found.', 404);
+        if ((int)$ownerId !== $user['id']) jsonError('You do not have permission to reorder this playlist.', 403);
+
+        // Update positions in a single transaction
+        $db->beginTransaction();
+        try {
+            $updateStmt = $db->prepare("
+                UPDATE playlist_tracks
+                SET position = :pos
+                WHERE playlist_id = :p AND track_id = :t
+            ");
+            foreach ($trackIds as $idx => $trackId) {
+                $updateStmt->execute([
+                    ':pos' => (int)$idx + 1,
+                    ':p'   => $playlistId,
+                    ':t'   => (int)$trackId
+                ]);
+            }
+            $db->prepare("UPDATE playlists SET updated_at = CURRENT_TIMESTAMP WHERE id = :id")->execute([':id' => $playlistId]);
+            $db->commit();
+        } catch (Exception $txEx) {
+            $db->rollBack();
+            throw $txEx;
+        }
+
+        jsonResponse(['success' => true, 'message' => 'Track order updated.']);
     }
 
     jsonError('Unknown playlist action.', 400);

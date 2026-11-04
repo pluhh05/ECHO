@@ -331,6 +331,197 @@ try {
         ]);
     }
 
+    // ----------------------------------------------------------------
+    // 6. GET ?action=artist_detail&id={id} — Artist bio, top tracks, albums
+    // ----------------------------------------------------------------
+    if ($action === 'artist_detail') {
+        $artistId = (int)($_GET['id'] ?? 0);
+        if ($artistId <= 0) jsonError('Invalid artist ID.', 400);
+
+        $arStmt = $db->prepare("SELECT id, name, bio, image_url, monthly_listeners FROM artists WHERE id = :id LIMIT 1");
+        $arStmt->execute([':id' => $artistId]);
+        $artist = $arStmt->fetch();
+        if (!$artist) jsonError('Artist not found.', 404);
+
+        // Top tracks by this artist (primary role)
+        $tStmt = $db->prepare("
+            SELECT t.id, t.title, t.duration_seconds, t.preview_url, t.plays_count,
+                   a.title AS album_title, a.cover_url,
+                   ar.name AS artist_name
+            FROM tracks t
+            JOIN albums a ON t.album_id = a.id
+            JOIN artists ar ON a.artist_id = ar.id
+            WHERE a.artist_id = :id
+            ORDER BY t.plays_count DESC, t.id ASC
+            LIMIT 8
+        ");
+        $tStmt->execute([':id' => $artistId]);
+        $tracks = $tStmt->fetchAll();
+        foreach ($tracks as &$t) {
+            $t['preview_url'] = normalizePreviewUrl($t['preview_url']);
+        }
+
+        // Albums
+        $alStmt = $db->prepare("
+            SELECT a.id, a.title, a.release_date, a.cover_url, a.album_type,
+                   COUNT(t.id) AS track_count
+            FROM albums a
+            LEFT JOIN tracks t ON a.id = t.album_id
+            WHERE a.artist_id = :id
+            GROUP BY a.id
+            ORDER BY a.release_date DESC
+        ");
+        $alStmt->execute([':id' => $artistId]);
+        $albums = $alStmt->fetchAll();
+
+        jsonResponse([
+            'success' => true,
+            'artist'  => $artist,
+            'top_tracks' => $tracks,
+            'albums'  => $albums
+        ]);
+    }
+
+    // ----------------------------------------------------------------
+    // 7. GET ?action=album_detail&id={id} — Album info + full track listing
+    // ----------------------------------------------------------------
+    if ($action === 'album_detail') {
+        $albumId = (int)($_GET['id'] ?? 0);
+        if ($albumId <= 0) jsonError('Invalid album ID.', 400);
+
+        $alStmt = $db->prepare("
+            SELECT a.id, a.title, a.release_date, a.cover_url, a.album_type,
+                   ar.id AS artist_id, ar.name AS artist_name, ar.bio AS artist_bio
+            FROM albums a
+            JOIN artists ar ON a.artist_id = ar.id
+            WHERE a.id = :id LIMIT 1
+        ");
+        $alStmt->execute([':id' => $albumId]);
+        $album = $alStmt->fetch();
+        if (!$album) jsonError('Album not found.', 404);
+
+        $tStmt = $db->prepare("
+            SELECT t.id, t.title, t.duration_seconds, t.preview_url, t.plays_count,
+                   ar.name AS artist_name,
+                   GROUP_CONCAT(DISTINCT g.name SEPARATOR ', ') AS genres
+            FROM tracks t
+            JOIN albums a ON t.album_id = a.id
+            JOIN artists ar ON a.artist_id = ar.id
+            LEFT JOIN track_genres tg ON t.id = tg.track_id
+            LEFT JOIN genres g ON tg.genre_id = g.id
+            WHERE t.album_id = :id
+            GROUP BY t.id
+            ORDER BY t.id ASC
+        ");
+        $tStmt->execute([':id' => $albumId]);
+        $tracks = $tStmt->fetchAll();
+        foreach ($tracks as &$t) {
+            $t['preview_url']  = normalizePreviewUrl($t['preview_url'], $t['genres'] ?? '');
+            $t['cover_url']    = $album['cover_url'];
+            $t['album_title']  = $album['title'];
+        }
+
+        jsonResponse([
+            'success' => true,
+            'album'   => $album,
+            'tracks'  => $tracks
+        ]);
+    }
+
+    // ----------------------------------------------------------------
+    // 8. GET ?action=recommendations — Personalised tracks for logged-in user
+    //    (based on genres of liked tracks; fallback to ECHO Picks for guests)
+    // ----------------------------------------------------------------
+    if ($action === 'recommendations') {
+        require_once __DIR__ . '/../../app/includes/auth_helper.php';
+        startSecureSession();
+        $user = getAuthUser();
+
+        if (!$user) {
+            // Guest fallback: ECHO Picks
+            $stmt = $db->query("
+                SELECT t.id, t.title, t.duration_seconds, t.preview_url, t.plays_count,
+                       a.title AS album_title, a.cover_url,
+                       ar.name AS artist_name, g.name AS genre_name
+                FROM tracks t
+                JOIN albums a ON t.album_id = a.id
+                JOIN artists ar ON a.artist_id = ar.id
+                LEFT JOIN track_genres tg ON t.id = tg.track_id
+                LEFT JOIN genres g ON tg.genre_id = g.id
+                WHERE t.is_staff_pick = 1
+                GROUP BY t.id
+                ORDER BY t.plays_count DESC
+                LIMIT 8
+            ");
+            $picks = $stmt->fetchAll();
+            foreach ($picks as &$p) $p['preview_url'] = normalizePreviewUrl($p['preview_url'], $p['genre_name'] ?? '');
+            jsonResponse(['success' => true, 'personalised' => false, 'tracks' => $picks]);
+        }
+
+        // Authenticated: find user's favourite genres from liked tracks
+        $genreStmt = $db->prepare("
+            SELECT g.id, g.slug, COUNT(*) AS cnt
+            FROM liked_tracks lt
+            JOIN track_genres tg ON lt.track_id = tg.track_id
+            JOIN genres g ON tg.genre_id = g.id
+            WHERE lt.user_id = :uid
+            GROUP BY g.id
+            ORDER BY cnt DESC
+            LIMIT 3
+        ");
+        $genreStmt->execute([':uid' => $user['id']]);
+        $topGenres = $genreStmt->fetchAll();
+
+        if (empty($topGenres)) {
+            // No liked tracks yet — return ECHO Picks
+            $stmt = $db->query("
+                SELECT t.id, t.title, t.duration_seconds, t.preview_url, t.plays_count,
+                       a.title AS album_title, a.cover_url,
+                       ar.name AS artist_name, g.name AS genre_name
+                FROM tracks t
+                JOIN albums a ON t.album_id = a.id
+                JOIN artists ar ON a.artist_id = ar.id
+                LEFT JOIN track_genres tg ON t.id = tg.track_id
+                LEFT JOIN genres g ON tg.genre_id = g.id
+                WHERE t.is_staff_pick = 1
+                GROUP BY t.id
+                ORDER BY t.plays_count DESC
+                LIMIT 8
+            ");
+            $picks = $stmt->fetchAll();
+            foreach ($picks as &$p) $p['preview_url'] = normalizePreviewUrl($p['preview_url'], $p['genre_name'] ?? '');
+            jsonResponse(['success' => true, 'personalised' => false, 'tracks' => $picks]);
+        }
+
+        $genreIds = array_column($topGenres, 'id');
+        $placeholders = implode(',', array_fill(0, count($genreIds), '?'));
+
+        // Tracks in those genres that user has NOT yet liked
+        $recStmt = $db->prepare("
+            SELECT DISTINCT
+                t.id, t.title, t.duration_seconds, t.preview_url, t.plays_count,
+                a.title AS album_title, a.cover_url,
+                ar.name AS artist_name,
+                g.name AS genre_name
+            FROM tracks t
+            JOIN albums a ON t.album_id = a.id
+            JOIN artists ar ON a.artist_id = ar.id
+            JOIN track_genres tg ON t.id = tg.track_id
+            JOIN genres g ON tg.genre_id = g.id
+            WHERE tg.genre_id IN ($placeholders)
+              AND t.id NOT IN (
+                  SELECT track_id FROM liked_tracks WHERE user_id = ?
+              )
+            ORDER BY t.plays_count DESC
+            LIMIT 8
+        ");
+        $recStmt->execute(array_merge($genreIds, [$user['id']]));
+        $recs = $recStmt->fetchAll();
+        foreach ($recs as &$r) $r['preview_url'] = normalizePreviewUrl($r['preview_url'], $r['genre_name'] ?? '');
+
+        jsonResponse(['success' => true, 'personalised' => true, 'tracks' => $recs]);
+    }
+
     jsonError('Unknown catalogue action.', 400);
 
 } catch (Exception $e) {

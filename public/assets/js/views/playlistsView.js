@@ -5,6 +5,7 @@
  */
 const PlaylistsView = (function () {
   let userPlaylists = [];
+  let fetchError = false;
 
   async function render(container, routeParams = {}) {
     const isAuthed = Api.isAuthenticated();
@@ -14,14 +15,22 @@ const PlaylistsView = (function () {
       return;
     }
 
+    // Always reset state before loading — prevents stale data after account switch
+    userPlaylists = [];
+    fetchError = false;
+
     if (isAuthed) {
       try {
         const res = await Api.get('playlists.php?action=list');
         if (res && res.success && Array.isArray(res.playlists)) {
           userPlaylists = res.playlists;
+        } else {
+          fetchError = true;
         }
       } catch (err) {
         console.warn('Could not fetch user playlists from backend:', err);
+        fetchError = true;
+        userPlaylists = []; // ensure array is clean
       }
     }
 
@@ -55,7 +64,20 @@ const PlaylistsView = (function () {
           </div>
         ` : ''}
 
-        ${isAuthed && userPlaylists.length === 0 ? `
+        ${isAuthed && fetchError ? `
+          <div class="state-container" style="background: var(--bg-surface-raised); border: 1px solid var(--color-error-subtle, rgba(239,68,68,0.15));">
+            <svg class="state-icon" style="color: var(--color-error, #ef4444);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <h3 class="state-title">Could not load playlists</h3>
+            <p class="state-description">There was a problem connecting to the server. Please check your connection and try again.</p>
+            <button class="btn btn-secondary" onclick="window.location.reload()">Retry</button>
+          </div>
+        ` : ''}
+
+        ${isAuthed && !fetchError && userPlaylists.length === 0 ? `
           <div class="state-container">
             <svg class="state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <line x1="8" y1="6" x2="21" y2="6"></line>
@@ -345,39 +367,223 @@ const PlaylistsView = (function () {
       });
     }
 
-    // Quick add song
+    // Quick add song — open searchable modal instead of prompt()
     const quickAddBtn = container.querySelector('#btn-quick-add');
-    if (quickAddBtn) {
-      quickAddBtn.addEventListener('click', async () => {
-        try {
-          const catRes = await Api.get('catalogue.php?action=tracks');
-          if (catRes && catRes.success && Array.isArray(catRes.tracks)) {
-            const available = catRes.tracks.filter(ct => !tracks.some(pt => pt.id === ct.id));
-            if (available.length === 0) {
-              Toast.info('All catalogue songs are already in this playlist!');
-              return;
-            }
-            const trackOptions = available.map(t => `${t.id}: ${t.title} - ${t.artist_name}`).join('\n');
-            const choice = prompt(`Enter Track ID to add:\n\n${trackOptions}`);
-            if (choice) {
-              const selectedId = parseInt(choice.trim(), 10);
-              if (selectedId > 0) {
-                const addRes = await Api.post('playlists.php?action=add_track', {
-                  playlist_id: playlistId,
-                  track_id: selectedId
-                });
-                if (addRes && addRes.success) {
-                  Toast.success(addRes.message || 'Track added!');
-                  renderPlaylistDetail(container, playlistId);
-                }
-              }
-            }
-          }
-        } catch (e) {
-          Toast.error(e.message || 'Failed to add song.');
-        }
+    if (quickAddBtn && pl.is_owner) {
+      quickAddBtn.addEventListener('click', () => {
+        openAddTrackModal(playlistId, tracks, (addedTrack) => {
+          renderPlaylistDetail(container, playlistId);
+        });
       });
     }
+
+    // Drag-and-drop track reordering
+    if (pl.is_owner) {
+      setupDragAndDrop(container, playlistId);
+    }
+  }
+
+  /**
+   * Open the searchable "Add Song" modal.
+   * @param {number} playlistId  - ID of the target playlist
+   * @param {Array}  currentTracks - tracks already in the playlist (to exclude)
+   * @param {Function} onAdd    - callback after a track is successfully added
+   */
+  function openAddTrackModal(playlistId, currentTracks, onAdd) {
+    const modal = document.getElementById('add-track-modal');
+    const searchInput = document.getElementById('add-track-search-input');
+    const resultsEl = document.getElementById('add-track-results');
+    if (!modal || !searchInput || !resultsEl) {
+      Toast.error('Add-song modal not found. Please reload the page.');
+      return;
+    }
+
+    // Reset modal state
+    searchInput.value = '';
+    resultsEl.innerHTML = `<p style="color:var(--text-muted);font-size:var(--text-sm);text-align:center;padding:var(--space-6) 0;">Start typing to search songs…</p>`;
+    Modal.open('add-track-modal');
+    searchInput.focus();
+
+    let debounceTimer = null;
+
+    function renderResults(tracks) {
+      if (!tracks || tracks.length === 0) {
+        resultsEl.innerHTML = `<p style="color:var(--text-muted);font-size:var(--text-sm);text-align:center;padding:var(--space-6) 0;">No songs found matching your search.</p>`;
+        return;
+      }
+
+      const excluded = new Set(currentTracks.map(t => t.id));
+      const available = tracks.filter(t => !excluded.has(t.id));
+
+      if (available.length === 0) {
+        resultsEl.innerHTML = `<p style="color:var(--text-muted);font-size:var(--text-sm);text-align:center;padding:var(--space-6) 0;">All matching songs are already in this playlist.</p>`;
+        return;
+      }
+
+      resultsEl.innerHTML = available.map(t => `
+        <button
+          class="add-track-result-row"
+          data-track-id="${t.id}"
+          role="option"
+          aria-label="Add ${escapeHtml(t.title)} by ${escapeHtml(t.artist_name)}"
+          style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3);border-radius:var(--radius-sm);width:100%;text-align:left;background:transparent;border:none;color:var(--text-primary);cursor:pointer;transition:background var(--transition-fast);"
+        >
+          <img
+            src="${t.cover_url || 'assets/images/default-cover.svg'}"
+            alt=""
+            style="width:40px;height:40px;object-fit:cover;border-radius:var(--radius-xs);flex-shrink:0;"
+            loading="lazy"
+          >
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:var(--text-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(t.title)}</div>
+            <div style="color:var(--text-secondary);font-size:var(--text-xs);">${escapeHtml(t.artist_name)} · ${escapeHtml(t.album_title)}</div>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" style="flex-shrink:0;" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </button>
+      `).join('');
+
+      // Wire click handlers
+      resultsEl.querySelectorAll('.add-track-result-row').forEach(btn => {
+        btn.addEventListener('mouseenter', () => { btn.style.background = 'var(--bg-surface-hover)'; });
+        btn.addEventListener('mouseleave', () => { btn.style.background = 'transparent'; });
+        btn.addEventListener('click', async () => {
+          const trackId = parseInt(btn.dataset.trackId, 10);
+          btn.disabled = true;
+          btn.style.opacity = '0.5';
+          try {
+            const res = await Api.post('playlists.php?action=add_track', {
+              playlist_id: playlistId,
+              track_id: trackId
+            });
+            if (res && res.success) {
+              Toast.success(res.message || 'Track added!');
+              Modal.close('add-track-modal');
+              if (typeof onAdd === 'function') onAdd(trackId);
+            } else {
+              btn.disabled = false;
+              btn.style.opacity = '';
+              Toast.error(res.error || 'Could not add track.');
+            }
+          } catch (err) {
+            btn.disabled = false;
+            btn.style.opacity = '';
+            Toast.error(err.message || 'Failed to add song.');
+          }
+        });
+      });
+    }
+
+    async function doSearch(query) {
+      if (query.length === 0) {
+        // Show all available catalogue tracks
+        try {
+          const res = await Api.get('catalogue.php?action=tracks');
+          if (res && res.success) renderResults(res.tracks);
+        } catch (e) {
+          resultsEl.innerHTML = `<p style="color:var(--text-muted);font-size:var(--text-sm);text-align:center;padding:var(--space-6) 0;">Start typing to search songs…</p>`;
+        }
+        return;
+      }
+      resultsEl.innerHTML = `<p style="color:var(--text-muted);font-size:var(--text-sm);text-align:center;padding:var(--space-4) 0;">Searching…</p>`;
+      try {
+        const res = await Api.get(`catalogue.php?action=tracks&q=${encodeURIComponent(query)}`);
+        if (res && res.success) renderResults(res.tracks);
+      } catch (e) {
+        resultsEl.innerHTML = `<p style="color:var(--text-muted);font-size:var(--text-sm);text-align:center;padding:var(--space-6) 0;">Could not search catalogue.</p>`;
+      }
+    }
+
+    // Debounce search input
+    function onInput() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => doSearch(searchInput.value.trim()), 280);
+    }
+
+    // Clean up old listener on each open, then re-attach
+    const newInput = searchInput.cloneNode(true);
+    searchInput.parentNode.replaceChild(newInput, searchInput);
+    newInput.addEventListener('input', onInput);
+    newInput.focus();
+
+    // Pre-load all songs when modal opens so the list is ready
+    doSearch('');
+  }
+
+  /**
+   * Set up HTML5 native drag-and-drop for track reordering.
+   */
+  function setupDragAndDrop(container, playlistId) {
+    const trackList = container.querySelector('#playlist-tracks');
+    if (!trackList) return;
+
+    let dragSrc = null;
+
+    trackList.querySelectorAll('.track-row').forEach(row => {
+      row.setAttribute('draggable', 'true');
+      row.style.cursor = 'grab';
+
+      row.addEventListener('dragstart', (e) => {
+        dragSrc = row;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', row.dataset.id);
+        row.classList.add('dragging');
+      });
+
+      row.addEventListener('dragend', () => {
+        row.classList.remove('dragging');
+        trackList.querySelectorAll('.track-row').forEach(r => r.classList.remove('drag-over'));
+      });
+
+      row.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (row !== dragSrc) {
+          trackList.querySelectorAll('.track-row').forEach(r => r.classList.remove('drag-over'));
+          row.classList.add('drag-over');
+        }
+      });
+
+      row.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        if (!dragSrc || dragSrc === row) return;
+
+        // Compute new order from current DOM state
+        const rows = [...trackList.querySelectorAll('.track-row')];
+        const fromIdx = rows.indexOf(dragSrc);
+        const toIdx = rows.indexOf(row);
+
+        // Move node in DOM for instant visual feedback
+        if (fromIdx < toIdx) {
+          trackList.insertBefore(dragSrc, row.nextSibling);
+        } else {
+          trackList.insertBefore(dragSrc, row);
+        }
+
+        // Update position numbers
+        trackList.querySelectorAll('.track-row').forEach((r, i) => {
+          const idx = r.querySelector('.track-index');
+          if (idx) idx.textContent = i + 1;
+          r.classList.remove('drag-over');
+        });
+
+        // Persist new order via API
+        const orderedIds = [...trackList.querySelectorAll('.track-row')].map(r => parseInt(r.dataset.id, 10));
+        try {
+          const res = await Api.post('playlists.php?action=reorder', {
+            playlist_id: playlistId,
+            track_ids: orderedIds
+          });
+          if (!res || !res.success) {
+            Toast.error('Could not save track order.');
+          }
+        } catch (err) {
+          Toast.error('Failed to save order: ' + (err.message || ''));
+        }
+      });
+    });
   }
 
   function formatTime(seconds) {

@@ -501,3 +501,37 @@
   }
 }
 
+
+/* =========================================================
+   Drag-and-Drop Track Reorder
+   ========================================================= */
+.track-row[draggable="true"] {
+  transition: opacity var(--transition-fast), background var(--transition-fast);
+}
+
+.track-row.dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+.track-row.drag-over {
+  background: var(--accent-subtle);
+  border-radius: var(--radius-sm);
+  outline: 2px dashed var(--accent-primary);
+  outline-offset: -2px;
+}
+
+/* Drag handle hint on hover */
+.track-row[draggable="true"]:hover .track-index {
+  color: var(--accent-primary);
+  cursor: grab;
+}
+
+/* =========================================================
+   Add-track Modal Result Row hover (supplemental)
+   ========================================================= */
+.add-track-result-row:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
